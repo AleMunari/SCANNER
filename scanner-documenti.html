@@ -8,1248 +8,551 @@
 <title>DocScan Pro</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --surface2: #1c1c27;
-    --border: #2a2a3d;
-    --accent: #6c63ff;
-    --accent2: #ff6584;
-    --accent3: #43e97b;
-    --text: #f0f0f8;
-    --text-dim: #8888aa;
-    --radius: 16px;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  /* HEADER */
-  .header {
-    padding: 20px 20px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: linear-gradient(to bottom, var(--bg) 80%, transparent);
-    backdrop-filter: blur(10px);
-  }
-
-  .logo {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 1.4rem;
-    letter-spacing: -0.5px;
-  }
-
-  .logo span { color: var(--accent); }
-
-  .page-count-badge {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    font-weight: 500;
-  }
-
-  .page-count-badge strong { color: var(--accent); font-weight: 700; }
-
-  /* MAIN */
-  .main { padding: 0 16px; }
-
-  /* CAMERA AREA */
-  .camera-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    position: relative;
-    margin-bottom: 16px;
-  }
-
-  .camera-header {
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .section-label {
-    font-family: 'Syne', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-  }
-
-  .live-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent3);
-    box-shadow: 0 0 8px var(--accent3);
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-
-  .camera-viewport {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 4/3;
-    background: #000;
-    overflow: hidden;
-  }
-
-  #video {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  #overlayCanvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-  }
-
-  .camera-placeholder {
-    width: 100%; height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 100%);
-  }
-
-  .camera-icon {
-    width: 64px; height: 64px;
-    border: 2px solid var(--border);
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-  }
-
-  .camera-placeholder p {
-    color: var(--text-dim);
-    font-size: 0.9rem;
-  }
-
-  /* CAPTURE BUTTON */
-  .capture-row {
-    padding: 16px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .btn-capture {
-    flex: 1;
-    height: 56px;
-    background: var(--accent);
-    border: none;
-    border-radius: 14px;
-    color: #fff;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 0.95rem;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.2s;
-    box-shadow: 0 4px 20px rgba(108, 99, 255, 0.4);
-    -webkit-user-select: none;
-  }
-
-  .btn-capture:active { transform: scale(0.97); opacity: 0.9; }
-
-  .btn-camera-toggle {
-    width: 56px; height: 56px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    color: var(--text-dim);
-    font-size: 1.3rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    -webkit-user-select: none;
-  }
-
-  .btn-camera-toggle:active { transform: scale(0.95); }
-
-  /* UPLOAD FALLBACK */
-  .upload-fallback {
-    padding: 0 16px 16px;
-  }
-
-  .btn-upload {
-    width: 100%;
-    height: 48px;
-    background: transparent;
-    border: 1px dashed var(--border);
-    border-radius: 12px;
-    color: var(--text-dim);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.9rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.2s;
-  }
-
-  .btn-upload:active { border-color: var(--accent); color: var(--accent); }
-
-  #fileInput { display: none; }
-
-  /* PAGES GRID */
-  .pages-section {
-    margin-bottom: 16px;
-  }
-
-  .pages-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 4px;
-    margin-bottom: 12px;
-  }
-
-  .btn-clear {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 12px;
-    color: var(--accent2);
-    font-size: 0.75rem;
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-  }
-
-  .pages-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  .page-thumb {
-    position: relative;
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    aspect-ratio: 3/4;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .page-thumb.selected {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.3);
-  }
-
-  .page-thumb img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .page-thumb .thumb-overlay {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.8));
-    padding: 20px 6px 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .page-num {
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: #fff;
-    font-family: 'Syne', sans-serif;
-  }
-
-  .btn-delete-page {
-    width: 22px; height: 22px;
-    background: rgba(255,101,132,0.9);
-    border: none;
-    border-radius: 6px;
-    color: #fff;
-    font-size: 0.7rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .empty-state {
-    grid-column: 1 / -1;
-    padding: 40px 20px;
-    text-align: center;
-    color: var(--text-dim);
-    font-size: 0.9rem;
-    line-height: 1.6;
-  }
-
-  .empty-icon { font-size: 2.5rem; margin-bottom: 10px; opacity: 0.5; }
-
-  /* EXPORT SECTION */
-  .export-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 24px;
-  }
-
-  .export-header {
-    margin-bottom: 14px;
-  }
-
-  /* MODE SELECTOR */
-  .mode-selector {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-
-  .mode-btn {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 6px;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s;
-    -webkit-user-select: none;
-  }
-
-  .mode-btn.active {
-    background: rgba(108, 99, 255, 0.15);
-    border-color: var(--accent);
-  }
-
-  .mode-icon { font-size: 1.3rem; margin-bottom: 4px; }
-
-  .mode-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    font-family: 'Syne', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-dim);
-  }
-
-  .mode-btn.active .mode-label { color: var(--accent); }
-
-  /* EXPORT BUTTON */
-  .btn-export {
-    width: 100%;
-    height: 56px;
-    background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
-    border: none;
-    border-radius: 14px;
-    color: #fff;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 1rem;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    transition: all 0.2s;
-    box-shadow: 0 4px 24px rgba(108, 99, 255, 0.5);
-    -webkit-user-select: none;
-  }
-
-  .btn-export:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-
-  .btn-export:not(:disabled):active { transform: scale(0.98); }
-
-  /* PROGRESS */
-  .progress-bar-wrap {
-    margin-top: 12px;
-    background: var(--surface2);
-    border-radius: 6px;
-    height: 4px;
-    overflow: hidden;
-    display: none;
-  }
-
-  .progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent3));
-    border-radius: 6px;
-    transition: width 0.3s ease;
-    width: 0%;
-  }
-
-  /* PREVIEW MODAL */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-  }
-
-  .modal-overlay.active { opacity: 1; pointer-events: all; }
-
-  .modal-content {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 400px;
-    overflow: hidden;
-    transform: translateY(20px);
-    transition: transform 0.3s ease;
-  }
-
-  .modal-overlay.active .modal-content { transform: translateY(0); }
-
-  .modal-header {
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .modal-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 1rem;
-  }
-
-  .btn-modal-close {
-    width: 30px; height: 30px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-dim);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-  }
-
-  .modal-body { padding: 16px 20px; }
-
-  #modalImage {
-    width: 100%;
-    border-radius: 12px;
-    display: block;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    padding: 0 20px 20px;
-  }
-
-  .btn-modal-action {
-    flex: 1;
-    height: 44px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-modal-action.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-    font-weight: 600;
-  }
-
-  /* TOAST */
-  .toast {
-    position: fixed;
-    bottom: calc(20px + env(safe-area-inset-bottom));
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 20px;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    z-index: 300;
-    transition: transform 0.3s ease;
-    pointer-events: none;
-  }
-
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.success { border-color: var(--accent3); color: var(--accent3); }
-  .toast.error { border-color: var(--accent2); color: var(--accent2); }
-
-  /* FLASH EFFECT */
-  .flash-overlay {
-    position: fixed;
-    inset: 0;
-    background: #fff;
-    z-index: 400;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.1s;
-  }
-
-  /* CORNER GUIDES */
-  .corner-guide {
-    position: absolute;
-    width: 20px; height: 20px;
-    border-color: #00ff88;
-    border-style: solid;
-    opacity: 0.9;
-  }
-
-  .corner-guide.tl { top: 12px; left: 12px; border-width: 3px 0 0 3px; }
-  .corner-guide.tr { top: 12px; right: 12px; border-width: 3px 3px 0 0; }
-  .corner-guide.bl { bottom: 12px; left: 12px; border-width: 0 0 3px 3px; }
-  .corner-guide.br { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; }
-
-  /* HIDDEN CANVAS */
-  #captureCanvas { display: none; }
-
-  /* SCROLLBAR */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+:root {
+  --bg:#0a0a0f; --surface:#13131a; --s2:#1c1c27; --border:#2a2a3d;
+  --acc:#6c63ff; --red:#ff6584; --green:#43e97b;
+  --text:#f0f0f8; --dim:#8888aa; --r:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow-x:hidden;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);padding-bottom:env(safe-area-inset-bottom,20px);}
+.hdr{padding:18px 18px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:linear-gradient(to bottom,var(--bg) 75%,transparent);backdrop-filter:blur(12px);}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.35rem;letter-spacing:-.5px;}
+.logo b{color:var(--acc);}
+.badge{background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:.8rem;color:var(--dim);}
+.badge span{color:var(--acc);font-weight:700;}
+.main{padding:0 14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
+.card-hdr{padding:12px 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.lbl{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* VIEWPORT VERTICALE — aspect-ratio 3:4 */
+.viewport{position:relative;width:100%;aspect-ratio:3/4;background:#000;overflow:hidden;}
+#video{width:100%;height:100%;object-fit:cover;display:block;}
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+.ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#0d0d1a,#1a0a2e);}
+.ph-icon{font-size:2.5rem;opacity:.6;}
+.ph p{color:var(--dim);font-size:.9rem;}
+.gc{position:absolute;width:22px;height:22px;border-color:rgba(255,255,255,.35);border-style:solid;}
+.gc.tl{top:10px;left:10px;border-width:3px 0 0 3px;}
+.gc.tr{top:10px;right:10px;border-width:3px 3px 0 0;}
+.gc.bl{bottom:10px;left:10px;border-width:0 0 3px 3px;}
+.gc.br{bottom:10px;right:10px;border-width:0 3px 3px 0;}
+.cap-row{padding:14px;display:flex;gap:10px;align-items:center;}
+.btn-cap{flex:1;height:54px;background:var(--acc);border:none;border-radius:13px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;letter-spacing:.4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(108,99,255,.45);transition:transform .15s,opacity .15s;-webkit-user-select:none;}
+.btn-cap:active{transform:scale(.96);opacity:.85;}
+.btn-sq{width:54px;height:54px;background:var(--s2);border:1px solid var(--border);border-radius:13px;color:var(--dim);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;-webkit-user-select:none;}
+.btn-sq:active{transform:scale(.93);}
+.upload-wrap{padding:0 14px 14px;}
+.btn-up{width:100%;height:46px;background:transparent;border:1px dashed var(--border);border-radius:11px;color:var(--dim);font-family:'DM Sans',sans-serif;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-up:active{border-color:var(--acc);color:var(--acc);}
+#fileIn{display:none;}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 3px;margin-bottom:11px;}
+.btn-clr{background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 11px;color:var(--red);font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.thumb{position:relative;border-radius:10px;overflow:hidden;background:var(--s2);border:2px solid transparent;aspect-ratio:3/4;cursor:pointer;}
+.thumb:active{opacity:.8;}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.thumb-ov{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:18px 6px 6px;display:flex;align-items:center;justify-content:space-between;}
+.pnum{font-size:.62rem;font-weight:700;color:#fff;font-family:'Syne',sans-serif;}
+.btn-del{width:22px;height:22px;background:rgba(255,101,132,.9);border:none;border-radius:6px;color:#fff;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.empty{grid-column:1/-1;padding:36px 20px;text-align:center;color:var(--dim);font-size:.88rem;line-height:1.7;}
+.empty-ic{font-size:2.2rem;margin-bottom:8px;opacity:.45;}
+.exp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:28px;}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 14px;}
+.mode{background:var(--s2);border:2px solid var(--border);border-radius:12px;padding:11px 5px;cursor:pointer;text-align:center;transition:border-color .2s,background .2s;-webkit-user-select:none;}
+.mode.on{background:rgba(108,99,255,.14);border-color:var(--acc);}
+.mode-ic{font-size:1.25rem;margin-bottom:3px;}
+.mode-lb{font-size:.68rem;font-weight:700;font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);}
+.mode.on .mode-lb{color:var(--acc);}
+.btn-exp{width:100%;height:54px;background:linear-gradient(135deg,var(--acc),#a855f7);border:none;border-radius:13px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 22px rgba(108,99,255,.5);transition:transform .15s;-webkit-user-select:none;}
+.btn-exp:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
+.btn-exp:not(:disabled):active{transform:scale(.98);}
+.prog-wrap{margin-top:11px;background:var(--s2);border-radius:6px;height:4px;overflow:hidden;display:none;}
+.prog{height:100%;background:linear-gradient(90deg,var(--acc),var(--green));border-radius:6px;width:0;transition:width .3s;}
+
+/* MODAL — slide up dal basso, chiusura facile */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+.modal.on{opacity:1;pointer-events:all;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:22px 22px 0 0;width:100%;max-width:500px;max-height:90vh;overflow:hidden;transform:translateY(50px);transition:transform .3s ease;display:flex;flex-direction:column;}
+.modal.on .modal-box{transform:translateY(0);}
+/* Handle di trascinamento visivo */
+.drag-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;}
+.modal-hdr{padding:10px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;}
+.modal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;}
+/* PULSANTE CHIUDI — molto visibile, rosso, grande */
+.btn-close{min-width:80px;height:38px;background:var(--red);border:none;border-radius:10px;color:#fff;font-size:.85rem;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 12px;-webkit-user-select:none;}
+.btn-close:active{opacity:.8;}
+.modal-img-wrap{flex:1;overflow-y:auto;padding:14px 16px;-webkit-overflow-scrolling:touch;}
+#mImg{width:100%;border-radius:12px;display:block;}
+.modal-acts{display:flex;gap:10px;padding:12px 16px 20px;flex-shrink:0;border-top:1px solid var(--border);}
+.btn-ma{flex:1;height:48px;background:var(--s2);border:1px solid var(--border);border-radius:11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;cursor:pointer;}
+.btn-ma.danger{background:var(--red);border-color:var(--red);color:#fff;font-weight:600;}
+.btn-ma:active{opacity:.8;}
+
+.toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(70px);background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:11px 20px;font-size:.84rem;white-space:nowrap;z-index:300;transition:transform .3s;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:var(--green);color:var(--green);}
+.toast.err{border-color:var(--red);color:var(--red);}
+.flash{position:fixed;inset:0;background:#fff;z-index:400;opacity:0;pointer-events:none;transition:opacity .08s;}
+#capCanvas{display:none;}
 </style>
 </head>
 <body>
 
-<div class="flash-overlay" id="flashOverlay"></div>
+<div class="flash" id="flash"></div>
 
-<div class="header">
-  <div class="logo">Doc<span>Scan</span> Pro</div>
-  <div class="page-count-badge">
-    <strong id="pageCountDisplay">0</strong> pagine
-  </div>
+<div class="hdr">
+  <div class="logo">Doc<b>Scan</b> Pro</div>
+  <div class="badge"><span id="cnt">0</span> pagine</div>
 </div>
 
 <div class="main">
 
-  <!-- CAMERA -->
-  <div class="camera-section">
-    <div class="camera-header">
-      <span class="section-label">Fotocamera</span>
-      <div class="live-dot" id="liveDot" style="display:none"></div>
+  <div class="card">
+    <div class="card-hdr">
+      <span class="lbl">Fotocamera</span>
+      <div class="dot" id="liveDot" style="display:none"></div>
     </div>
-    <div class="camera-viewport" id="cameraViewport">
-      <div class="camera-placeholder" id="cameraPlaceholder">
-        <div class="camera-icon">📷</div>
-        <p>Avvia la fotocamera per iniziare</p>
+    <!-- VIEWPORT 3:4 = VERTICALE come una pagina -->
+    <div class="viewport" id="vp">
+      <div class="ph" id="ph">
+        <div class="ph-icon">📷</div>
+        <p>Tocca per avviare la fotocamera</p>
       </div>
       <video id="video" autoplay playsinline muted style="display:none"></video>
-      <canvas id="overlayCanvas"></canvas>
-      <div class="corner-guide tl" id="cornerTL" style="display:none"></div>
-      <div class="corner-guide tr" id="cornerTR" style="display:none"></div>
-      <div class="corner-guide bl" id="cornerBL" style="display:none"></div>
-      <div class="corner-guide br" id="cornerBR" style="display:none"></div>
+      <canvas id="overlay"></canvas>
+      <div class="gc tl" id="gTL" style="display:none"></div>
+      <div class="gc tr" id="gTR" style="display:none"></div>
+      <div class="gc bl" id="gBL" style="display:none"></div>
+      <div class="gc br" id="gBR" style="display:none"></div>
     </div>
-    <div class="capture-row">
-      <button class="btn-capture" id="btnStartCamera" onclick="startCamera()">
-        <span>📷</span> Avvia Fotocamera
-      </button>
-      <button class="btn-camera-toggle" id="btnFlip" onclick="flipCamera()" style="display:none" title="Inverti fotocamera">🔄</button>
-    </div>
-    <div class="upload-fallback">
-      <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
-        <span>📁</span> Importa da Galleria
-      </button>
-      <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFileUpload(event)">
+    <div class="cap-row">
+      <button class="btn-cap" id="mainBtn" onclick="startCamera()">📷 Avvia Fotocamera</button>
+      <button class="btn-sq" id="flipBtn" onclick="flipCam()" style="display:none">🔄</button>
     </div>
   </div>
 
-  <!-- PAGES -->
-  <div class="pages-section" id="pagesSection">
-    <div class="pages-header">
-      <span class="section-label">Pagine (<span id="pageCountSmall">0</span>)</span>
-      <button class="btn-clear" onclick="clearAllPages()">Svuota tutto</button>
-    </div>
-    <div class="pages-grid" id="pagesGrid">
-      <div class="empty-state">
-        <div class="empty-icon">📄</div>
-        <p>Scatta o importa foto<br>per creare il documento</p>
-      </div>
-    </div>
+  <div class="upload-wrap">
+    <button class="btn-up" onclick="document.getElementById('fileIn').click()">📁 Importa da Galleria</button>
+    <input type="file" id="fileIn" accept="image/*" multiple onchange="onFiles(event)">
   </div>
 
-  <!-- EXPORT -->
-  <div class="export-section">
-    <div class="export-header">
-      <span class="section-label">Modalità PDF</span>
+  <div class="sec-hdr">
+    <span class="lbl">Pagine (<span id="cntS">0</span>)</span>
+    <button class="btn-clr" onclick="clearAll()">Svuota tutto</button>
+  </div>
+  <div class="grid" id="grid">
+    <div class="empty"><div class="empty-ic">📄</div><p>Scatta o importa foto<br>per creare il documento</p></div>
+  </div>
+
+  <div class="exp-card">
+    <span class="lbl">Modalità PDF</span>
+    <div class="modes">
+      <div class="mode on" onclick="setMode('color',this)"><div class="mode-ic">🎨</div><div class="mode-lb">Colore</div></div>
+      <div class="mode" onclick="setMode('original',this)"><div class="mode-ic">📸</div><div class="mode-lb">Originale</div></div>
+      <div class="mode" onclick="setMode('bw',this)"><div class="mode-ic">⬛</div><div class="mode-lb">B&amp;N</div></div>
     </div>
-    <div class="mode-selector">
-      <div class="mode-btn active" data-mode="color" onclick="setMode('color', this)">
-        <div class="mode-icon">🎨</div>
-        <div class="mode-label">Colore</div>
-      </div>
-      <div class="mode-btn" data-mode="original" onclick="setMode('original', this)">
-        <div class="mode-icon">📸</div>
-        <div class="mode-label">Originale</div>
-      </div>
-      <div class="mode-btn" data-mode="bw" onclick="setMode('bw', this)">
-        <div class="mode-icon">⬛</div>
-        <div class="mode-label">B&amp;N</div>
-      </div>
-    </div>
-    <button class="btn-export" id="btnExport" onclick="exportPDF()" disabled>
-      <span>📤</span> Esporta PDF
-    </button>
-    <div class="progress-bar-wrap" id="progressWrap">
-      <div class="progress-bar-fill" id="progressFill"></div>
-    </div>
+    <button class="btn-exp" id="btnExp" onclick="exportPDF()" disabled>📤 Esporta PDF</button>
+    <div class="prog-wrap" id="progWrap"><div class="prog" id="prog"></div></div>
   </div>
 
 </div>
 
-<!-- PREVIEW MODAL -->
-<div class="modal-overlay" id="previewModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <span class="modal-title">Anteprima pagina</span>
-      <button class="btn-modal-close" onclick="closeModal()">✕</button>
+<!-- MODAL — con handle, pulsante chiudi rosso, tap fuori chiude -->
+<div class="modal" id="modal" onclick="onModalBg(event)">
+  <div class="modal-box" id="modalBox">
+    <div class="drag-handle"></div>
+    <div class="modal-hdr">
+      <span class="modal-title" id="mTitle">Pagina</span>
+      <button class="btn-close" onclick="closeModal()">✕ Chiudi</button>
     </div>
-    <div class="modal-body">
-      <img id="modalImage" src="" alt="Pagina">
+    <div class="modal-img-wrap">
+      <img id="mImg" src="" alt="">
     </div>
-    <div class="modal-actions">
-      <button class="btn-modal-action" onclick="closeModal()">Chiudi</button>
-      <button class="btn-modal-action primary" onclick="deleteCurrentPage()">🗑 Elimina</button>
+    <div class="modal-acts">
+      <button class="btn-ma" onclick="closeModal()">← Indietro</button>
+      <button class="btn-ma danger" onclick="delCurrent()">🗑 Elimina</button>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
-<!-- HIDDEN CANVAS -->
-<canvas id="captureCanvas"></canvas>
+<canvas id="capCanvas"></canvas>
 
 <script>
-const { jsPDF } = window.jspdf;
+const {jsPDF} = window.jspdf;
 
-// STATE
-let stream = null;
-let facingMode = 'environment';
-let pages = []; // { original: dataURL, processed: dataURL }
-let selectedMode = 'color';
-let selectedPageIndex = -1;
-let edgeDetectionInterval = null;
+let stream=null, facing='environment';
+let pages=[];
+let mode='color';
+let selIdx=-1;
+let edgeTimer=null;
 
-const video = document.getElementById('video');
-const overlayCanvas = document.getElementById('overlayCanvas');
-const captureCanvas = document.getElementById('captureCanvas');
-const ctx = overlayCanvas.getContext('2d');
+// Buffer per stabilizzazione: teniamo gli ultimi N frame validi
+const N_SMOOTH = 8;
+let cbuf = [];  // array di {tl,tr,br,bl} in coordinate canvas
 
-// ─── CAMERA ────────────────────────────────────────────────────────────────
+const video    = document.getElementById('video');
+const overlayC = document.getElementById('overlay');
+const capC     = document.getElementById('capCanvas');
+const octx     = overlayC.getContext('2d');
 
+// ── CAMERA ──────────────────────────────────────────────────────────────────
 async function startCamera() {
   try {
-    if (stream) { stream.getTracks().forEach(t => t.stop()); }
+    if (stream) stream.getTracks().forEach(t=>t.stop());
+
+    // Chiedi esplicitamente portrait (height > width)
     stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode,
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      }
+      video: { facingMode: facing, width:{ideal:1080}, height:{ideal:1920} }
     });
+
     video.srcObject = stream;
     video.style.display = 'block';
-    document.getElementById('cameraPlaceholder').style.display = 'none';
+    document.getElementById('ph').style.display = 'none';
     document.getElementById('liveDot').style.display = 'block';
-    document.getElementById('btnFlip').style.display = 'flex';
-    document.getElementById('btnStartCamera').innerHTML = '<span>📸</span> Scatta Foto';
-    document.getElementById('btnStartCamera').onclick = capturePhoto;
-    ['cornerTL','cornerTR','cornerBL','cornerBR'].forEach(id => {
-      document.getElementById(id).style.display = 'block';
-    });
-    video.onloadedmetadata = () => {
-      overlayCanvas.width = video.videoWidth;
-      overlayCanvas.height = video.videoHeight;
-      startEdgeDetection();
-    };
-    showToast('Fotocamera attiva ✓', 'success');
-  } catch(e) {
-    showToast('Errore accesso fotocamera', 'error');
-    console.error(e);
-  }
+    document.getElementById('flipBtn').style.display = 'flex';
+    const btn = document.getElementById('mainBtn');
+    btn.innerHTML = '📸 Scatta Foto';
+    btn.onclick = capture;
+    ['gTL','gTR','gBL','gBR'].forEach(id=>document.getElementById(id).style.display='block');
+
+    video.onloadedmetadata = () => { syncOC(); cbuf=[]; startEdge(); };
+    toast('Fotocamera attiva ✓','ok');
+  } catch(e) { toast('Errore accesso fotocamera','err'); console.error(e); }
 }
 
-async function flipCamera() {
-  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+function syncOC() {
+  overlayC.width  = video.videoWidth;
+  overlayC.height = video.videoHeight;
+}
+
+async function flipCam() {
+  facing = facing==='environment'?'user':'environment';
   await startCamera();
 }
 
-function startEdgeDetection() {
-  if (edgeDetectionInterval) clearInterval(edgeDetectionInterval);
-  edgeDetectionInterval = setInterval(detectAndDrawEdges, 200);
+// ── EDGE DETECTION STABILE ──────────────────────────────────────────────────
+function startEdge() {
+  if (edgeTimer) clearInterval(edgeTimer);
+  edgeTimer = setInterval(edgeFrame, 120);
 }
 
-function detectAndDrawEdges() {
+function edgeFrame() {
   if (!video.videoWidth) return;
-  const w = overlayCanvas.width;
-  const h = overlayCanvas.height;
+  syncOC();
+  const W=overlayC.width, H=overlayC.height;
 
-  // Sample from video
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = w; tempCanvas.height = h;
-  const tc = tempCanvas.getContext('2d');
-  tc.drawImage(video, 0, 0, w, h);
-  const imgData = tc.getImageData(0, 0, w, h);
+  // Downscale per velocità: lavora a 1/3 risoluzione
+  const SC = 3;
+  const sw=Math.floor(W/SC), sh=Math.floor(H/SC);
+  const tmp=document.createElement('canvas');
+  tmp.width=sw; tmp.height=sh;
+  tmp.getContext('2d').drawImage(video, 0, 0, sw, sh);
+  const id=tmp.getContext('2d').getImageData(0,0,sw,sh);
 
-  const doc = findDocumentCorners(imgData, w, h);
+  const raw = findCorners(id, sw, sh);
+  const corners = raw ? {
+    tl:{x:raw.tl.x*SC, y:raw.tl.y*SC},
+    tr:{x:raw.tr.x*SC, y:raw.tr.y*SC},
+    br:{x:raw.br.x*SC, y:raw.br.y*SC},
+    bl:{x:raw.bl.x*SC, y:raw.bl.y*SC},
+  } : null;
 
-  ctx.clearRect(0, 0, w, h);
+  if (corners) {
+    cbuf.push(corners);
+    if (cbuf.length > N_SMOOTH) cbuf.shift();
+  } else {
+    if (cbuf.length > 1) cbuf.shift(); // fade lento
+  }
 
-  if (doc) {
-    // Draw detected quadrilateral
-    ctx.beginPath();
-    ctx.moveTo(doc.tl.x, doc.tl.y);
-    ctx.lineTo(doc.tr.x, doc.tr.y);
-    ctx.lineTo(doc.br.x, doc.br.y);
-    ctx.lineTo(doc.bl.x, doc.bl.y);
-    ctx.closePath();
-    ctx.strokeStyle = 'rgba(67, 233, 123, 0.85)';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([]);
-    ctx.stroke();
+  renderOverlay(W, H);
+}
 
-    // Fill overlay
-    ctx.fillStyle = 'rgba(67, 233, 123, 0.08)';
-    ctx.fill();
+function smoothCorners() {
+  if (!cbuf.length) return null;
+  const avg={tl:{x:0,y:0},tr:{x:0,y:0},br:{x:0,y:0},bl:{x:0,y:0}};
+  const keys=['tl','tr','br','bl'];
+  for (const c of cbuf) for (const k of keys) { avg[k].x+=c[k].x; avg[k].y+=c[k].y; }
+  const n=cbuf.length;
+  for (const k of keys) { avg[k].x/=n; avg[k].y/=n; }
+  return avg;
+}
 
-    // Corner dots
-    [doc.tl, doc.tr, doc.br, doc.bl].forEach(pt => {
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 8, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(67, 233, 123, 0.9)';
-      ctx.fill();
+function renderOverlay(W, H) {
+  octx.clearRect(0,0,W,H);
+  const c = smoothCorners();
+  if (c) {
+    const {tl,tr,br,bl}=c;
+    octx.beginPath();
+    octx.moveTo(tl.x,tl.y); octx.lineTo(tr.x,tr.y);
+    octx.lineTo(br.x,br.y); octx.lineTo(bl.x,bl.y);
+    octx.closePath();
+    octx.fillStyle='rgba(67,233,123,.06)'; octx.fill();
+    octx.strokeStyle='rgba(67,233,123,.88)';
+    octx.lineWidth=Math.max(2.5, W*.004);
+    octx.setLineDash([]); octx.stroke();
+    [tl,tr,br,bl].forEach(p=>{
+      octx.beginPath();
+      octx.arc(p.x,p.y,Math.max(7,W*.013),0,Math.PI*2);
+      octx.fillStyle='rgba(67,233,123,.9)'; octx.fill();
     });
   } else {
-    // Draw crosshair guide
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([8, 8]);
-    const margin = Math.min(w, h) * 0.08;
-    ctx.strokeRect(margin, margin, w - margin * 2, h - margin * 2);
-    ctx.setLineDash([]);
+    // Rettangolo guida
+    const mx=W*.1,my=H*.06;
+    octx.strokeStyle='rgba(255,255,255,.15)'; octx.lineWidth=1.5;
+    octx.setLineDash([10,10]);
+    octx.strokeRect(mx,my,W-mx*2,H-my*2);
+    octx.setLineDash([]);
   }
 }
 
-function findDocumentCorners(imgData, w, h) {
-  // Sobel edge detection + contour finding (simplified)
-  const data = imgData.data;
-  const gray = new Uint8Array(w * h);
-
-  for (let i = 0; i < w * h; i++) {
-    const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
-    gray[i] = (r * 0.299 + g * 0.587 + b * 0.114);
-  }
+// ── TROVA ANGOLI (Sobel + quadranti) ───────────────────────────────────────
+function findCorners(imgData, W, H) {
+  const d=imgData.data;
+  const gray=new Float32Array(W*H);
+  for (let i=0;i<W*H;i++) gray[i]=d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114;
 
   // Sobel
-  const edges = new Uint8Array(w * h);
-  let maxEdge = 0;
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      const gx = -gray[(y-1)*w+(x-1)] + gray[(y-1)*w+(x+1)]
-                 - 2*gray[y*w+(x-1)] + 2*gray[y*w+(x+1)]
-                 - gray[(y+1)*w+(x-1)] + gray[(y+1)*w+(x+1)];
-      const gy = -gray[(y-1)*w+(x-1)] - 2*gray[(y-1)*w+x] - gray[(y-1)*w+(x+1)]
-                 + gray[(y+1)*w+(x-1)] + 2*gray[(y+1)*w+x] + gray[(y+1)*w+(x+1)];
-      const mag = Math.sqrt(gx*gx + gy*gy);
-      edges[y*w+x] = mag;
-      if (mag > maxEdge) maxEdge = mag;
+  const mag=new Float32Array(W*H);
+  let maxM=0;
+  for (let y=1;y<H-1;y++) for (let x=1;x<W-1;x++) {
+    const gx=-gray[(y-1)*W+(x-1)]+gray[(y-1)*W+(x+1)]-2*gray[y*W+(x-1)]+2*gray[y*W+(x+1)]-gray[(y+1)*W+(x-1)]+gray[(y+1)*W+(x+1)];
+    const gy=-gray[(y-1)*W+(x-1)]-2*gray[(y-1)*W+x]-gray[(y-1)*W+(x+1)]+gray[(y+1)*W+(x-1)]+2*gray[(y+1)*W+x]+gray[(y+1)*W+(x+1)];
+    const m=Math.sqrt(gx*gx+gy*gy);
+    mag[y*W+x]=m; if(m>maxM)maxM=m;
+  }
+  if (maxM<8) return null;
+  const thr=maxM*.20;
+
+  const mg=.08;
+  const x0=Math.floor(W*mg),x1=Math.floor(W*(1-mg));
+  const y0=Math.floor(H*mg),y1=Math.floor(H*(1-mg));
+
+  // Cerca il punto edge più vicino a ciascun angolo
+  const corners=[{cx:0,cy:0},{cx:W,cy:0},{cx:W,cy:H},{cx:0,cy:H}];
+  const best=corners.map(()=>({x:0,y:0,score:-Infinity}));
+
+  for (let y=y0;y<y1;y+=2) for (let x=x0;x<x1;x+=2) {
+    if (mag[y*W+x]<thr) continue;
+    for (let i=0;i<4;i++) {
+      const dx=x-corners[i].cx, dy=y-corners[i].cy;
+      const s=-(dx*dx+dy*dy);
+      if (s>best[i].score) best[i]={x,y,score:s};
     }
   }
 
-  // Find edge points in quadrants
-  const threshold = maxEdge * 0.25;
-  const margin = 0.05;
+  if (best.some(b=>b.score===-Infinity)) return null;
+  const [tl,tr,br,bl]=best;
 
-  const quadrants = [
-    { xMin: 0, xMax: 0.5, yMin: 0, yMax: 0.5, best: null, bestScore: -Infinity },   // TL
-    { xMin: 0.5, xMax: 1, yMin: 0, yMax: 0.5, best: null, bestScore: -Infinity },   // TR
-    { xMin: 0.5, xMax: 1, yMin: 0.5, yMax: 1, best: null, bestScore: -Infinity },   // BR
-    { xMin: 0, xMax: 0.5, yMin: 0.5, yMax: 1, best: null, bestScore: -Infinity }    // BL
-  ];
+  const docW=Math.max(tr.x-tl.x,br.x-bl.x);
+  const docH=Math.max(bl.y-tl.y,br.y-tr.y);
+  if (docW<W*.2||docH<H*.15) return null;
+  const ratio=docW/docH;
+  if (ratio<.25||ratio>4) return null;
 
-  const scores = [
-    (x, y) => -(x + y),      // TL: minimize x+y
-    (x, y) => x - y,         // TR: maximize x-y
-    (x, y) => x + y,         // BR: maximize x+y
-    (x, y) => -(x - y)       // BL: minimize x-y
-  ];
-
-  for (let y = Math.floor(h * margin); y < Math.floor(h * (1 - margin)); y++) {
-    for (let x = Math.floor(w * margin); x < Math.floor(w * (1 - margin)); x++) {
-      if (edges[y * w + x] < threshold) continue;
-      const nx = x / w, ny = y / h;
-      quadrants.forEach((q, i) => {
-        if (nx >= q.xMin && nx <= q.xMax && ny >= q.yMin && ny <= q.yMax) {
-          const s = scores[i](nx, ny);
-          if (s > q.bestScore) { q.bestScore = s; q.best = { x, y }; }
-        }
-      });
-    }
-  }
-
-  const tl = quadrants[0].best;
-  const tr = quadrants[1].best;
-  const br = quadrants[2].best;
-  const bl = quadrants[3].best;
-
-  if (!tl || !tr || !br || !bl) return null;
-
-  // Validate: must form a reasonable quadrilateral
-  const docW = Math.max(tr.x - tl.x, br.x - bl.x);
-  const docH = Math.max(bl.y - tl.y, br.y - tr.y);
-
-  if (docW < w * 0.2 || docH < h * 0.2) return null;
-
-  return { tl, tr, br, bl };
+  return {tl,tr,br,bl};
 }
 
-// ─── CAPTURE ────────────────────────────────────────────────────────────────
-
-async function capturePhoto() {
+// ── SCATTO ──────────────────────────────────────────────────────────────────
+async function capture() {
   if (!stream) return;
+  const fl=document.getElementById('flash');
+  fl.style.opacity=1; setTimeout(()=>fl.style.opacity=0,100);
 
-  // Flash
-  const flash = document.getElementById('flashOverlay');
-  flash.style.opacity = 1;
-  setTimeout(() => flash.style.opacity = 0, 120);
+  const VW=video.videoWidth, VH=video.videoHeight;
+  capC.width=VW; capC.height=VH;
+  capC.getContext('2d').drawImage(video,0,0,VW,VH);
+  const origURL=capC.toDataURL('image/jpeg',.93);
 
-  // Grab frame
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  captureCanvas.width = vw;
-  captureCanvas.height = vh;
-  const cc = captureCanvas.getContext('2d');
-  cc.drawImage(video, 0, 0, vw, vh);
-
-  // Check for detected document
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = vw; tempCanvas.height = vh;
-  const tc = tempCanvas.getContext('2d');
-  tc.drawImage(video, 0, 0, vw, vh);
-  const imgData = tc.getImageData(0, 0, vw, vh);
-  const corners = findDocumentCorners(imgData, vw, vh);
-
-  let processedDataURL;
-  if (corners) {
-    processedDataURL = perspectiveCorrect(captureCanvas, corners);
+  const sc=smoothCorners();
+  let procURL;
+  if (sc) {
+    // Scala le coordinate dal canvas overlay (W x H) al video reale (VW x VH)
+    const rx=VW/overlayC.width, ry=VH/overlayC.height;
+    const scaled={
+      tl:{x:sc.tl.x*rx,y:sc.tl.y*ry}, tr:{x:sc.tr.x*rx,y:sc.tr.y*ry},
+      br:{x:sc.br.x*rx,y:sc.br.y*ry}, bl:{x:sc.bl.x*rx,y:sc.bl.y*ry},
+    };
+    procURL=perspCorrect(capC,scaled);
   } else {
-    processedDataURL = captureCanvas.toDataURL('image/jpeg', 0.92);
+    procURL=origURL;
   }
 
-  const originalDataURL = captureCanvas.toDataURL('image/jpeg', 0.92);
-
-  pages.push({ original: originalDataURL, processed: processedDataURL });
-  updatePagesGrid();
-  updateExportButton();
-  showToast(`Pagina ${pages.length} acquisita ✓`, 'success');
+  pages.push({orig:origURL,proc:procURL});
+  updateGrid(); updateExp();
+  toast(`Pagina ${pages.length} acquisita ✓`,'ok');
 }
 
-function perspectiveCorrect(sourceCanvas, corners) {
-  const { tl, tr, br, bl } = corners;
-
-  const w = Math.max(
-    Math.hypot(tr.x - tl.x, tr.y - tl.y),
-    Math.hypot(br.x - bl.x, br.y - bl.y)
-  );
-  const h = Math.max(
-    Math.hypot(bl.x - tl.x, bl.y - tl.y),
-    Math.hypot(br.x - tr.x, br.y - tr.y)
-  );
-
-  const outW = Math.round(w);
-  const outH = Math.round(h);
-
-  const dstCanvas = document.createElement('canvas');
-  dstCanvas.width = outW;
-  dstCanvas.height = outH;
-  const dctx = dstCanvas.getContext('2d');
-
-  // Bilinear transform approximation via grid sampling
-  const srcCtx = sourceCanvas.getContext('2d');
-  const srcData = srcCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-  const outData = dctx.createImageData(outW, outH);
-
-  for (let dy = 0; dy < outH; dy++) {
-    for (let dx = 0; dx < outW; dx++) {
-      const s = dx / outW;
-      const t = dy / outH;
-
-      const sx = (1-s)*(1-t)*tl.x + s*(1-t)*tr.x + s*t*br.x + (1-s)*t*bl.x;
-      const sy = (1-s)*(1-t)*tl.y + s*(1-t)*tr.y + s*t*br.y + (1-s)*t*bl.y;
-
-      const px = Math.round(sx);
-      const py = Math.round(sy);
-
-      if (px >= 0 && px < sourceCanvas.width && py >= 0 && py < sourceCanvas.height) {
-        const srcIdx = (py * sourceCanvas.width + px) * 4;
-        const dstIdx = (dy * outW + dx) * 4;
-        outData.data[dstIdx]   = srcData.data[srcIdx];
-        outData.data[dstIdx+1] = srcData.data[srcIdx+1];
-        outData.data[dstIdx+2] = srcData.data[srcIdx+2];
-        outData.data[dstIdx+3] = 255;
-      }
+// ── CORREZIONE PROSPETTICA ──────────────────────────────────────────────────
+function perspCorrect(src, {tl,tr,br,bl}) {
+  const W=Math.round(Math.max(Math.hypot(tr.x-tl.x,tr.y-tl.y),Math.hypot(br.x-bl.x,br.y-bl.y)));
+  const H=Math.round(Math.max(Math.hypot(bl.x-tl.x,bl.y-tl.y),Math.hypot(br.x-tr.x,br.y-tr.y)));
+  const dst=document.createElement('canvas'); dst.width=W; dst.height=H;
+  const dctx=dst.getContext('2d');
+  const s=src.getContext('2d').getImageData(0,0,src.width,src.height);
+  const o=dctx.createImageData(W,H); const SW=src.width;
+  for (let dy=0;dy<H;dy++) for (let dx=0;dx<W;dx++) {
+    const u=dx/W, v=dy/H;
+    const sx=Math.round((1-u)*(1-v)*tl.x+u*(1-v)*tr.x+u*v*br.x+(1-u)*v*bl.x);
+    const sy=Math.round((1-u)*(1-v)*tl.y+u*(1-v)*tr.y+u*v*br.y+(1-u)*v*bl.y);
+    if (sx>=0&&sx<src.width&&sy>=0&&sy<src.height) {
+      const si=(sy*SW+sx)*4, di=(dy*W+dx)*4;
+      o.data[di]=s.data[si]; o.data[di+1]=s.data[si+1];
+      o.data[di+2]=s.data[si+2]; o.data[di+3]=255;
     }
   }
-
-  dctx.putImageData(outData, 0, 0);
-
-  // Enhance: auto levels
-  autoLevels(dstCanvas);
-
-  return dstCanvas.toDataURL('image/jpeg', 0.92);
+  dctx.putImageData(o,0,0);
+  autoLvl(dst);
+  return dst.toDataURL('image/jpeg',.93);
 }
 
-function autoLevels(canvas) {
-  const ctx2 = canvas.getContext('2d');
-  const imgData = ctx2.getImageData(0, 0, canvas.width, canvas.height);
-  const d = imgData.data;
-  let minR = 255, maxR = 0, minG = 255, maxG = 0, minB = 255, maxB = 0;
-
-  for (let i = 0; i < d.length; i += 4) {
-    minR = Math.min(minR, d[i]);   maxR = Math.max(maxR, d[i]);
-    minG = Math.min(minG, d[i+1]); maxG = Math.max(maxG, d[i+1]);
-    minB = Math.min(minB, d[i+2]); maxB = Math.max(maxB, d[i+2]);
-  }
-
-  const rr = maxR - minR || 1;
-  const rg = maxG - minG || 1;
-  const rb = maxB - minB || 1;
-
-  for (let i = 0; i < d.length; i += 4) {
-    d[i]   = Math.min(255, ((d[i]   - minR) / rr) * 255);
-    d[i+1] = Math.min(255, ((d[i+1] - minG) / rg) * 255);
-    d[i+2] = Math.min(255, ((d[i+2] - minB) / rb) * 255);
-  }
-
-  ctx2.putImageData(imgData, 0, 0);
+function autoLvl(c) {
+  const cx=c.getContext('2d');
+  const d=cx.getImageData(0,0,c.width,c.height); const px=d.data;
+  let mn=[255,255,255],mx=[0,0,0];
+  for (let i=0;i<px.length;i+=4) for (let ch=0;ch<3;ch++){mn[ch]=Math.min(mn[ch],px[i+ch]);mx[ch]=Math.max(mx[ch],px[i+ch]);}
+  for (let i=0;i<px.length;i+=4) for (let ch=0;ch<3;ch++) px[i+ch]=Math.min(255,((px[i+ch]-mn[ch])/((mx[ch]-mn[ch])||1))*255);
+  cx.putImageData(d,0,0);
 }
 
-// ─── FILE UPLOAD ────────────────────────────────────────────────────────────
-
-function handleFileUpload(event) {
-  const files = Array.from(event.target.files);
-  let loaded = 0;
-  files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataURL = e.target.result;
-      pages.push({ original: dataURL, processed: dataURL });
-      loaded++;
-      if (loaded === files.length) {
-        updatePagesGrid();
-        updateExportButton();
-        showToast(`${loaded} pagina/e aggiunta/e ✓`, 'success');
-      }
+// ── UPLOAD ──────────────────────────────────────────────────────────────────
+function onFiles(e) {
+  const files=Array.from(e.target.files); let done=0;
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      const u=ev.target.result;
+      pages.push({orig:u,proc:u});
+      if(++done===files.length){updateGrid();updateExp();toast(`${done} pagina/e aggiunta/e`,'ok');}
     };
-    reader.readAsDataURL(file);
+    r.readAsDataURL(f);
   });
-  event.target.value = '';
+  e.target.value='';
 }
 
-// ─── PAGES GRID ─────────────────────────────────────────────────────────────
-
-function updatePagesGrid() {
-  const grid = document.getElementById('pagesGrid');
-  const count = pages.length;
-  document.getElementById('pageCountDisplay').textContent = count;
-  document.getElementById('pageCountSmall').textContent = count;
-
-  if (count === 0) {
-    grid.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📄</div>
-        <p>Scatta o importa foto<br>per creare il documento</p>
-      </div>`;
-    return;
-  }
-
-  grid.innerHTML = pages.map((p, i) => `
-    <div class="page-thumb" onclick="openPreview(${i})">
-      <img src="${p.processed}" loading="lazy" alt="Pagina ${i+1}">
-      <div class="thumb-overlay">
-        <span class="page-num">PAG. ${i + 1}</span>
-        <button class="btn-delete-page" onclick="event.stopPropagation(); deletePage(${i})">✕</button>
+// ── GRIGLIA ─────────────────────────────────────────────────────────────────
+function updateGrid() {
+  const g=document.getElementById('grid'), n=pages.length;
+  document.getElementById('cnt').textContent=n;
+  document.getElementById('cntS').textContent=n;
+  if(!n){g.innerHTML='<div class="empty"><div class="empty-ic">📄</div><p>Scatta o importa foto<br>per creare il documento</p></div>';return;}
+  g.innerHTML=pages.map((p,i)=>`
+    <div class="thumb" onclick="openModal(${i})">
+      <img src="${p.proc}" loading="lazy">
+      <div class="thumb-ov">
+        <span class="pnum">PAG.${i+1}</span>
+        <button class="btn-del" onclick="event.stopPropagation();delPage(${i})">✕</button>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
+function delPage(i){pages.splice(i,1);updateGrid();updateExp();toast('Pagina eliminata','ok');}
+function clearAll(){if(!pages.length)return;if(confirm('Eliminare tutte le pagine?')){pages=[];updateGrid();updateExp();toast('Svuotato','ok');}}
+function updateExp(){document.getElementById('btnExp').disabled=!pages.length;}
 
-function deletePage(i) {
-  pages.splice(i, 1);
-  updatePagesGrid();
-  updateExportButton();
-  showToast('Pagina eliminata', 'success');
+// ── MODAL ────────────────────────────────────────────────────────────────────
+function openModal(i) {
+  selIdx=i;
+  document.getElementById('mImg').src=pages[i].proc;
+  document.getElementById('mTitle').textContent=`Pagina ${i+1} di ${pages.length}`;
+  document.getElementById('modal').classList.add('on');
+  document.body.style.overflow='hidden';
 }
-
-function clearAllPages() {
-  if (!pages.length) return;
-  if (confirm('Eliminare tutte le pagine?')) {
-    pages = [];
-    updatePagesGrid();
-    updateExportButton();
-    showToast('Documento svuotato', 'success');
-  }
-}
-
-function updateExportButton() {
-  document.getElementById('btnExport').disabled = pages.length === 0;
-}
-
-// ─── PREVIEW MODAL ──────────────────────────────────────────────────────────
-
-function openPreview(i) {
-  selectedPageIndex = i;
-  document.getElementById('modalImage').src = pages[i].processed;
-  document.getElementById('previewModal').classList.add('active');
-}
-
 function closeModal() {
-  document.getElementById('previewModal').classList.remove('active');
-  selectedPageIndex = -1;
+  document.getElementById('modal').classList.remove('on');
+  document.body.style.overflow='';
+  selIdx=-1;
+}
+// Tap sullo sfondo chiude
+function onModalBg(e){if(e.target===document.getElementById('modal'))closeModal();}
+function delCurrent(){if(selIdx<0)return;delPage(selIdx);closeModal();}
+
+// ── MODALITÀ ─────────────────────────────────────────────────────────────────
+function setMode(m,el){
+  mode=m;
+  document.querySelectorAll('.mode').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
 }
 
-function deleteCurrentPage() {
-  if (selectedPageIndex < 0) return;
-  deletePage(selectedPageIndex);
-  closeModal();
-}
-
-document.getElementById('previewModal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
-
-// ─── MODE ────────────────────────────────────────────────────────────────────
-
-function setMode(mode, el) {
-  selectedMode = mode;
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-}
-
-// ─── IMAGE PROCESSING ────────────────────────────────────────────────────────
-
-function processImageForMode(dataURL, mode) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.width; c.height = img.height;
-      const ctx2 = c.getContext('2d');
-      ctx2.drawImage(img, 0, 0);
-
-      if (mode === 'original') {
-        resolve(dataURL);
-        return;
-      }
-
-      const imgData = ctx2.getImageData(0, 0, c.width, c.height);
-      const d = imgData.data;
-
-      if (mode === 'bw') {
-        // Enhanced B&W with contrast boost
-        for (let i = 0; i < d.length; i += 4) {
-          let lum = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
-          // Contrast stretch + slight sharpening effect
-          lum = Math.min(255, Math.max(0, (lum - 128) * 1.4 + 128));
-          d[i] = d[i+1] = d[i+2] = lum;
+// ── PROCESSING ───────────────────────────────────────────────────────────────
+function processImg(url,m){
+  return new Promise(res=>{
+    if(m==='original'){res(url);return;}
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
+      const cx=c.getContext('2d'); cx.drawImage(img,0,0);
+      const id=cx.getImageData(0,0,c.width,c.height); const px=id.data;
+      if(m==='bw'){
+        for(let i=0;i<px.length;i+=4){
+          const l=Math.min(255,Math.max(0,(px[i]*.299+px[i+1]*.587+px[i+2]*.114-128)*1.5+128));
+          px[i]=px[i+1]=px[i+2]=l;
         }
-      } else if (mode === 'color') {
-        // Enhanced color: auto-levels + saturation boost + sharpening
-        let minR=255, maxR=0, minG=255, maxG=0, minB=255, maxB=0;
-        for (let i = 0; i < d.length; i+=4) {
-          minR=Math.min(minR,d[i]); maxR=Math.max(maxR,d[i]);
-          minG=Math.min(minG,d[i+1]); maxG=Math.max(maxG,d[i+1]);
-          minB=Math.min(minB,d[i+2]); maxB=Math.max(maxB,d[i+2]);
-        }
-        const rr = (maxR-minR)||1, rg=(maxG-minG)||1, rb=(maxB-minB)||1;
-        for (let i = 0; i < d.length; i+=4) {
-          let r = ((d[i]-minR)/rr)*255;
-          let g = ((d[i+1]-minG)/rg)*255;
-          let b = ((d[i+2]-minB)/rb)*255;
-          // Saturation boost
-          const lum = r*0.299 + g*0.587 + b*0.114;
-          r = Math.min(255, Math.max(0, lum + (r - lum) * 1.3));
-          g = Math.min(255, Math.max(0, lum + (g - lum) * 1.3));
-          b = Math.min(255, Math.max(0, lum + (b - lum) * 1.3));
-          d[i] = r; d[i+1] = g; d[i+2] = b;
-        }
-      }
-
-      ctx2.putImageData(imgData, 0, 0);
-      resolve(c.toDataURL('image/jpeg', 0.92));
-    };
-    img.src = dataURL;
-  });
-}
-
-// ─── EXPORT PDF ──────────────────────────────────────────────────────────────
-
-async function exportPDF() {
-  if (!pages.length) return;
-
-  const btn = document.getElementById('btnExport');
-  const progressWrap = document.getElementById('progressWrap');
-  const progressFill = document.getElementById('progressFill');
-
-  btn.disabled = true;
-  btn.innerHTML = '<span>⏳</span> Generazione...';
-  progressWrap.style.display = 'block';
-  progressFill.style.width = '0%';
-
-  try {
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageW = 210, pageH = 297;
-
-    for (let i = 0; i < pages.length; i++) {
-      const progress = ((i + 0.5) / pages.length) * 100;
-      progressFill.style.width = progress + '%';
-
-      if (i > 0) pdf.addPage();
-
-      const imgData = await processImageForMode(pages[i].processed, selectedMode);
-
-      // Get image dimensions
-      const imgInfo = await getImageDimensions(imgData);
-      const ratio = imgInfo.width / imgInfo.height;
-
-      // Fit to page with margins
-      const marginH = 10, marginV = 12;
-      const maxW = pageW - marginH * 2;
-      const maxH = pageH - marginV * 2;
-
-      let drawW, drawH;
-      if (ratio > maxW / maxH) {
-        drawW = maxW;
-        drawH = maxW / ratio;
       } else {
-        drawH = maxH;
-        drawW = maxH * ratio;
+        let mn=[255,255,255],mx=[0,0,0];
+        for(let i=0;i<px.length;i+=4) for(let ch=0;ch<3;ch++){mn[ch]=Math.min(mn[ch],px[i+ch]);mx[ch]=Math.max(mx[ch],px[i+ch]);}
+        for(let i=0;i<px.length;i+=4){
+          let r=((px[i]-mn[0])/((mx[0]-mn[0])||1))*255;
+          let g=((px[i+1]-mn[1])/((mx[1]-mn[1])||1))*255;
+          let b=((px[i+2]-mn[2])/((mx[2]-mn[2])||1))*255;
+          const lum=r*.299+g*.587+b*.114;
+          px[i]=Math.min(255,Math.max(0,lum+(r-lum)*1.3));
+          px[i+1]=Math.min(255,Math.max(0,lum+(g-lum)*1.3));
+          px[i+2]=Math.min(255,Math.max(0,lum+(b-lum)*1.3));
+        }
       }
-
-      const x = (pageW - drawW) / 2;
-      const y = (pageH - drawH) / 2;
-
-      pdf.addImage(imgData, 'JPEG', x, y, drawW, drawH);
-
-      // Page number
-      pdf.setFontSize(8);
-      pdf.setTextColor(150, 150, 150);
-      pdf.text(`${i+1} / ${pages.length}`, pageW / 2, pageH - 4, { align: 'center' });
-
-      progressFill.style.width = ((i + 1) / pages.length) * 100 + '%';
-    }
-
-    const modeLabels = { color: 'colore', original: 'originale', bw: 'bianconero' };
-    const filename = `documento_${modeLabels[selectedMode]}_${Date.now()}.pdf`;
-    pdf.save(filename);
-
-    showToast('PDF esportato con successo ✓', 'success');
-  } catch(e) {
-    console.error(e);
-    showToast('Errore durante l\'esportazione', 'error');
-  }
-
-  btn.disabled = false;
-  btn.innerHTML = '<span>📤</span> Esporta PDF';
-  setTimeout(() => { progressWrap.style.display = 'none'; progressFill.style.width = '0%'; }, 1000);
-}
-
-function getImageDimensions(dataURL) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve({ width: img.width, height: img.height });
-    img.src = dataURL;
+      cx.putImageData(id,0,0);
+      res(c.toDataURL('image/jpeg',.93));
+    };
+    img.src=url;
   });
 }
 
-// ─── TOAST ───────────────────────────────────────────────────────────────────
-
-let toastTimer = null;
-function showToast(msg, type = '') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast show ${type}`;
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2500);
+// ── EXPORT PDF ───────────────────────────────────────────────────────────────
+async function exportPDF(){
+  if(!pages.length)return;
+  const btn=document.getElementById('btnExp'),pw=document.getElementById('progWrap'),pf=document.getElementById('prog');
+  btn.disabled=true; btn.innerHTML='⏳ Generazione...'; pw.style.display='block'; pf.style.width='0%';
+  try{
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const PW=210,PH=297;
+    for(let i=0;i<pages.length;i++){
+      pf.style.width=((i+.5)/pages.length*100)+'%';
+      if(i>0)pdf.addPage();
+      const imgD=await processImg(pages[i].proc,mode);
+      const dim=await new Promise(r=>{const im=new Image();im.onload=()=>r({w:im.width,h:im.height});im.src=imgD;});
+      const ratio=dim.w/dim.h, mh=10,mv=12,maxW=PW-mh*2,maxH=PH-mv*2;
+      let dw,dh;
+      if(ratio>maxW/maxH){dw=maxW;dh=maxW/ratio;}else{dh=maxH;dw=maxH*ratio;}
+      pdf.addImage(imgD,'JPEG',(PW-dw)/2,(PH-dh)/2,dw,dh);
+      pdf.setFontSize(8);pdf.setTextColor(160,160,160);
+      pdf.text(`${i+1} / ${pages.length}`,PW/2,PH-4,{align:'center'});
+      pf.style.width=((i+1)/pages.length*100)+'%';
+    }
+    const lb={color:'colore',original:'originale',bw:'bianconero'};
+    pdf.save(`documento_${lb[mode]}_${Date.now()}.pdf`);
+    toast('PDF esportato ✓','ok');
+  }catch(e){console.error(e);toast('Errore esportazione','err');}
+  btn.disabled=false; btn.innerHTML='📤 Esporta PDF';
+  setTimeout(()=>{pw.style.display='none';pf.style.width='0%';},1200);
 }
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
-
-// Resize overlay canvas on resize
-window.addEventListener('resize', () => {
-  if (video.videoWidth) {
-    overlayCanvas.width = video.videoWidth;
-    overlayCanvas.height = video.videoHeight;
-  }
-});
-
-// Stop camera when page hidden
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && stream) {
-    clearInterval(edgeDetectionInterval);
-  } else if (!document.hidden && stream) {
-    startEdgeDetection();
-  }
+// ── UTILS ────────────────────────────────────────────────────────────────────
+let toastT=null;
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast show ${type}`;
+  if(toastT)clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),2600);
+}
+window.addEventListener('resize',()=>{if(video.videoWidth)syncOC();});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){if(edgeTimer)clearInterval(edgeTimer);}
+  else if(stream){syncOC();startEdge();}
 });
 </script>
 </body>
